@@ -1,0 +1,6 @@
+{
+  "name": "Up AM Premium",
+  "description": "Premium upgrade dashboard for Alight Motion with integrated limit management and secure authentication.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

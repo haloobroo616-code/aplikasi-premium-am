@@ -1,0 +1,19 @@
+{
+  "collections": {
+    "users": {
+      "fields": {
+        "username": { "type": "string" },
+        "password": { "type": "string" },
+        "role": { "type": "string" },
+        "limit": { "type": "number" },
+        "todayCount": { "type": "number" },
+        "lastReset": { "type": "timestamp" },
+        "points": { "type": "number" },
+        "referralCount": { "type": "number" }
+      },
+      "indexes": [
+        { "fields": { "username": "ascending" }, "unique": true }
+      ]
+    }
+  }
+}
