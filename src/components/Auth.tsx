@@ -8,7 +8,6 @@ interface AuthProps {
 }
 
 export default function Auth({ onAuthSuccess }: AuthProps) {
-  const [isLogin, setIsLogin] = useState(true);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -19,9 +18,8 @@ export default function Auth({ onAuthSuccess }: AuthProps) {
     setLoading(true);
     setError("");
 
-    const endpoint = isLogin ? "/api/auth/login" : "/api/auth/register";
     try {
-      const res = await fetch(endpoint, {
+      const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password }),
@@ -29,14 +27,7 @@ export default function Auth({ onAuthSuccess }: AuthProps) {
       const data = await res.json();
 
       if (res.ok) {
-        if (isLogin) {
-          onAuthSuccess(data.user);
-        } else {
-          setIsLogin(true);
-          setError("Account created! Please login.");
-          setUsername("");
-          setPassword("");
-        }
+        onAuthSuccess(data.user);
       } else {
         setError(data.error || "Authentication failed");
       }
@@ -60,15 +51,15 @@ export default function Auth({ onAuthSuccess }: AuthProps) {
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ delay: 0.2 }}
-              className="w-16 h-16 bg-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-indigo-100 mb-6"
+              className="w-16 h-16 bg-slate-900 rounded-2xl flex items-center justify-center text-white shadow-xl mb-6"
             >
               <ShieldCheck className="w-9 h-9" />
             </motion.div>
             <h2 className="text-3xl font-bold text-slate-900 tracking-tight mb-2">
-              {isLogin ? "Welcome Back" : "Create Account"}
+              Admin Portal
             </h2>
             <p className="text-slate-500 font-medium text-sm leading-relaxed max-w-[280px]">
-              {isLogin ? "Manage your premium Alight Motion access" : "Start your premium journey with Up AM"}
+              Silakan login untuk mengelola layanan dan status website.
             </p>
           </div>
 
@@ -82,7 +73,7 @@ export default function Auth({ onAuthSuccess }: AuthProps) {
                 <input
                   type="text"
                   required
-                  placeholder="Enter your username"
+                  placeholder="Username admin"
                   className="w-full pl-12 pr-4 py-4 bg-slate-50/50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-slate-900 placeholder:text-slate-400 font-medium"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
@@ -113,13 +104,9 @@ export default function Auth({ onAuthSuccess }: AuthProps) {
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: "auto" }}
                   exit={{ opacity: 0, height: 0 }}
-                  className={`flex items-center gap-3 p-4 rounded-2xl border ${
-                    error.includes("created") 
-                      ? "bg-emerald-50 text-emerald-800 border-emerald-100" 
-                      : "bg-rose-50 text-rose-800 border-rose-100"
-                  }`}
+                  className="flex items-center gap-3 p-4 rounded-2xl border bg-rose-50 text-rose-800 border-rose-100"
                 >
-                  {error.includes("created") ? <CheckCircle2 className="w-5 h-5 shrink-0" /> : <AlertCircle className="w-5 h-5 shrink-0" />}
+                  <AlertCircle className="w-5 h-5 shrink-0" />
                   <p className="text-sm font-semibold">{error}</p>
                 </motion.div>
               )}
@@ -128,32 +115,20 @@ export default function Auth({ onAuthSuccess }: AuthProps) {
             <button
               type="submit"
               disabled={loading}
-              className="group relative w-full bg-indigo-600 text-white py-4 rounded-2xl font-bold text-lg hover:bg-indigo-700 active:scale-[0.98] transition-all shadow-xl shadow-indigo-100 disabled:opacity-70 disabled:active:scale-100"
+              className="group relative w-full bg-slate-900 text-white py-4 rounded-2xl font-bold text-lg hover:bg-indigo-600 active:scale-[0.98] transition-all shadow-xl disabled:opacity-70 disabled:active:scale-100"
             >
               <div className="flex items-center justify-center gap-2">
                 {loading ? (
                   <Loader2 className="w-6 h-6 animate-spin" />
                 ) : (
                   <>
-                    <span>{isLogin ? "Sign In" : "Register Now"}</span>
+                    <span>Sign In Admin</span>
                     <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                   </>
                 )}
               </div>
             </button>
           </form>
-
-          <div className="mt-8 text-center">
-            <button
-              onClick={() => {
-                setIsLogin(!isLogin);
-                setError("");
-              }}
-              className="text-slate-500 font-bold hover:text-indigo-600 transition-colors text-sm"
-            >
-              {isLogin ? "Don't have an account? Register" : "Already have an account? Sign In"}
-            </button>
-          </div>
         </div>
       </motion.div>
       

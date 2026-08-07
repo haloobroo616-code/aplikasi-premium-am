@@ -4,12 +4,14 @@ import React, { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 
 interface DashboardProps {
-  user: User;
+  user: User | null;
   onLogout: () => void;
   onRefresh: () => void;
+  onLoginRequest: () => void;
+  siteStatus: "open" | "closed";
 }
 
-export default function Dashboard({ user, onLogout, onRefresh }: DashboardProps) {
+export default function Dashboard({ user, onLogout, onRefresh, onLoginRequest, siteStatus }: DashboardProps) {
   const [email, setEmail] = useState("");
   const [magicUrl, setMagicUrl] = useState("");
   const [step, setStep] = useState(1); // 1: Send, 2: Verif
@@ -38,6 +40,25 @@ export default function Dashboard({ user, onLogout, onRefresh }: DashboardProps)
       }
     } catch (err) {
       setMessage({ type: "error", text: "Connection error" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const toggleSite = async () => {
+    setLoading(true);
+    try {
+      const newStatus = siteStatus === 'open' ? 'closed' : 'open';
+      const res = await fetch("/api/admin/toggle-site", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      if (res.ok) {
+        onRefresh();
+      }
+    } catch (e) {
+      console.error(e);
     } finally {
       setLoading(false);
     }
@@ -72,9 +93,9 @@ export default function Dashboard({ user, onLogout, onRefresh }: DashboardProps)
     }
   };
 
-  const isAdmin = user.role === 'Admin';
-  const limitDisplay = isAdmin ? "∞" : user.limit;
-  const remaining = isAdmin ? "∞" : user.limit - user.todayCount;
+  const isAdmin = user?.role === 'Admin';
+  const limitDisplay = isAdmin ? "∞" : (user?.limit || "Unlimited");
+  const remaining = isAdmin ? "∞" : (user ? user.limit - user.todayCount : "Unlimited");
 
   return (
     <div className="max-w-6xl mx-auto p-4 md:p-10">
@@ -91,24 +112,37 @@ export default function Dashboard({ user, onLogout, onRefresh }: DashboardProps)
           <div>
             <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Up AM Premium</h1>
             <div className="flex items-center gap-2">
-              <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
-              <p className="text-[13px] text-slate-500 font-bold uppercase tracking-widest">Active Session</p>
+              <span className={`w-2 h-2 ${siteStatus === 'open' ? 'bg-emerald-500' : 'bg-rose-500'} rounded-full animate-pulse`} />
+              <p className="text-[13px] text-slate-500 font-bold uppercase tracking-widest">
+                {siteStatus === 'open' ? 'Service Online' : 'Service Offline'}
+              </p>
             </div>
           </div>
         </div>
         
         <div className="flex items-center gap-4">
-          <div className="hidden md:flex flex-col items-end mr-2">
-            <span className="text-sm font-bold text-slate-900">@{user.username}</span>
-            <span className="text-xs font-medium text-slate-500">{user.role} Account</span>
-          </div>
-          <button
-            onClick={onLogout}
-            className="group flex items-center gap-2 pl-3 pr-4 py-2.5 rounded-2xl border border-slate-200 bg-white hover:bg-rose-50 hover:border-rose-100 hover:text-rose-600 transition-all font-bold text-sm text-slate-600 active:scale-95"
-          >
-            <LogOut className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-            Logout
-          </button>
+          {user ? (
+            <>
+              <div className="hidden md:flex flex-col items-end mr-2">
+                <span className="text-sm font-bold text-slate-900">@{user.username}</span>
+                <span className="text-xs font-medium text-slate-500">{user.role} Account</span>
+              </div>
+              <button
+                onClick={onLogout}
+                className="group flex items-center gap-2 pl-3 pr-4 py-2.5 rounded-2xl border border-slate-200 bg-white hover:bg-rose-50 hover:border-rose-100 hover:text-rose-600 transition-all font-bold text-sm text-slate-600 active:scale-95"
+              >
+                <LogOut className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+                Logout
+              </button>
+            </>
+          ) : (
+            <button
+              onClick={onLoginRequest}
+              className="group flex items-center gap-2 px-6 py-2.5 rounded-2xl bg-slate-900 text-white hover:bg-indigo-600 transition-all font-bold text-sm active:scale-95 shadow-lg shadow-slate-100"
+            >
+              Admin Login
+            </button>
+          )}
         </div>
       </motion.header>
 
@@ -119,19 +153,49 @@ export default function Dashboard({ user, onLogout, onRefresh }: DashboardProps)
           animate={{ opacity: 1, x: 0 }}
           className="lg:col-span-4 space-y-6"
         >
-          {/* Profile Card */}
+          {isAdmin && (
+            <div className="bg-slate-900 p-8 rounded-[32px] text-white shadow-xl relative overflow-hidden group">
+              <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity">
+                <Shield className="w-24 h-24 rotate-12" />
+              </div>
+              <h3 className="text-lg font-bold mb-4 relative z-10 flex items-center gap-2">
+                <Shield className="w-5 h-5 text-indigo-400" />
+                Admin Controls
+              </h3>
+              <p className="text-slate-400 text-sm mb-6 relative z-10">Control the website visibility for public users.</p>
+              <button 
+                onClick={toggleSite}
+                disabled={loading}
+                className={`w-full py-4 rounded-2xl font-black text-sm uppercase tracking-widest transition-all active:scale-95 relative z-10 ${
+                  siteStatus === 'open' 
+                    ? 'bg-rose-500 hover:bg-rose-600 text-white' 
+                    : 'bg-emerald-500 hover:bg-emerald-600 text-white'
+                }`}
+              >
+                {loading ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : (
+                  siteStatus === 'open' ? 'Close Website' : 'Open Website'
+                )}
+              </button>
+            </div>
+          )}
+
+          {/* Profile Card / Guest Card */}
           <div className="bg-white p-8 rounded-[32px] border border-slate-200 shadow-[0_8px_30px_rgba(0,0,0,0.04)] relative overflow-hidden group">
             <div className="absolute top-0 right-0 p-8 opacity-[0.03] group-hover:opacity-[0.05] transition-opacity pointer-events-none">
-              <Shield className="w-32 h-32 rotate-12" />
+              <Crown className="w-32 h-32 rotate-12" />
             </div>
             
             <div className="flex items-center gap-5 mb-8 relative">
               <div className="w-16 h-16 bg-slate-50 rounded-full border-2 border-slate-100 flex items-center justify-center text-slate-400">
-                <Shield className="w-8 h-8" />
+                {user ? <Shield className="w-8 h-8" /> : <Zap className="w-8 h-8 text-indigo-600" />}
               </div>
               <div>
-                <p className="text-[13px] font-bold text-slate-400 uppercase tracking-wider">Account Profile</p>
-                <h3 className="text-xl font-bold text-slate-900 leading-tight">@{user.username}</h3>
+                <p className="text-[13px] font-bold text-slate-400 uppercase tracking-wider">
+                  {user ? 'Account Profile' : 'Guest Mode'}
+                </p>
+                <h3 className="text-xl font-bold text-slate-900 leading-tight">
+                  {user ? `@${user.username}` : 'Public User'}
+                </h3>
               </div>
             </div>
             
@@ -141,12 +205,12 @@ export default function Dashboard({ user, onLogout, onRefresh }: DashboardProps)
                   <div className={`p-2 rounded-lg ${isAdmin ? 'bg-amber-100' : 'bg-indigo-100'}`}>
                     <Crown className={`w-4 h-4 ${isAdmin ? 'text-amber-600' : 'text-indigo-600'}`} />
                   </div>
-                  <span className="text-sm font-bold text-slate-600">Plan</span>
+                  <span className="text-sm font-bold text-slate-600">Access</span>
                 </div>
                 <span className={`text-xs font-black uppercase tracking-widest px-3 py-1.5 rounded-full ${
-                  isAdmin ? 'bg-amber-100 text-amber-700' : 'bg-indigo-600 text-white'
+                  isAdmin ? 'bg-amber-100 text-amber-700' : (user ? 'bg-indigo-600 text-white' : 'bg-slate-200 text-slate-600')
                 }`}>
-                  {user.role}
+                  {user ? user.role : 'Public'}
                 </span>
               </div>
               
@@ -155,28 +219,38 @@ export default function Dashboard({ user, onLogout, onRefresh }: DashboardProps)
                   <div className="p-2 bg-emerald-100 rounded-lg text-emerald-600">
                     <Activity className="w-4 h-4" />
                   </div>
-                  <span className="text-sm font-bold text-slate-600">Availability</span>
+                  <span className="text-sm font-bold text-slate-600">Daily Quota</span>
                 </div>
                 <span className="text-sm font-black text-slate-900">{remaining} / {limitDisplay}</span>
               </div>
             </div>
 
-            <div className="mt-8 pt-8 border-t border-slate-100 space-y-4">
-              <div className="flex items-start gap-3">
-                <Clock className="w-4 h-4 text-slate-400 mt-0.5" />
-                <div>
-                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Last Reset</p>
-                  <p className="text-sm font-bold text-slate-900">{new Date(user.lastReset).toLocaleString()}</p>
+            {user && (
+              <div className="mt-8 pt-8 border-t border-slate-100 space-y-4">
+                <div className="flex items-start gap-3">
+                  <Clock className="w-4 h-4 text-slate-400 mt-0.5" />
+                  <div>
+                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Last Reset</p>
+                    <p className="text-sm font-bold text-slate-900">{new Date(user.lastReset).toLocaleString()}</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <Calendar className="w-4 h-4 text-slate-400 mt-0.5" />
+                  <div>
+                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Reset Cycle</p>
+                    <p className="text-sm font-bold text-slate-900">Every 30 Hours</p>
+                  </div>
                 </div>
               </div>
-              <div className="flex items-start gap-3">
-                <Calendar className="w-4 h-4 text-slate-400 mt-0.5" />
-                <div>
-                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Reset Cycle</p>
-                  <p className="text-sm font-bold text-slate-900">Every 30 Hours</p>
-                </div>
+            )}
+            
+            {!user && (
+              <div className="mt-8 pt-8 border-t border-slate-100">
+                <p className="text-xs font-medium text-slate-500 leading-relaxed italic text-center">
+                  Nikmati layanan premium AM gratis tanpa login. Gunakan fitur di sebelah kanan untuk memulai.
+                </p>
               </div>
-            </div>
+            )}
           </div>
         </motion.div>
 

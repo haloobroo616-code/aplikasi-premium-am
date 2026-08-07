@@ -2,26 +2,37 @@ import { useState, useEffect } from "react";
 import { User } from "./types";
 import Auth from "./components/Auth";
 import Dashboard from "./components/Dashboard";
+import Maintenance from "./components/Maintenance";
 import { motion, AnimatePresence } from "motion/react";
 import { Loader2 } from "lucide-react";
 
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [siteStatus, setSiteStatus] = useState<"open" | "closed">("open");
+  const [showAuth, setShowAuth] = useState(false);
 
   useEffect(() => {
-    checkStatus();
+    initApp();
   }, []);
 
-  const checkStatus = async () => {
+  const initApp = async () => {
     try {
-      const res = await fetch("/api/user/status");
-      if (res.ok) {
-        const data = await res.json();
-        setUser(data.user);
+      // Check user status
+      const userRes = await fetch("/api/user/status");
+      if (userRes.ok) {
+        const userData = await userRes.json();
+        setUser(userData.user);
+      }
+
+      // Check site status
+      const siteRes = await fetch("/api/site-status");
+      if (siteRes.ok) {
+        const siteData = await siteRes.json();
+        setSiteStatus(siteData.status);
       }
     } catch (err) {
-      console.error("Auth check failed", err);
+      console.error("Initialization failed", err);
     } finally {
       setLoading(false);
     }
@@ -29,11 +40,18 @@ export default function App() {
 
   const handleAuthSuccess = (userData: User) => {
     setUser(userData);
+    setShowAuth(false);
+    // Re-check site status after login (admin might have changed it)
+    initApp();
   };
 
   const handleLogout = async () => {
     await fetch("/api/auth/logout", { method: "POST" });
     setUser(null);
+  };
+
+  const handleRefresh = () => {
+    initApp();
   };
 
   if (loading) {
@@ -43,6 +61,9 @@ export default function App() {
       </div>
     );
   }
+
+  const isAdmin = user?.role === "Admin";
+  const isClosed = siteStatus === "closed" && !isAdmin;
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans selection:bg-indigo-100 relative overflow-hidden">
@@ -55,7 +76,7 @@ export default function App() {
 
       <div className="relative z-10">
         <AnimatePresence mode="wait">
-          {!user ? (
+          {showAuth ? (
             <motion.div
               key="auth"
               initial={{ opacity: 0, scale: 0.98 }}
@@ -64,7 +85,24 @@ export default function App() {
               transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
               className="flex items-center justify-center min-h-screen p-4"
             >
-              <Auth onAuthSuccess={handleAuthSuccess} />
+              <div className="w-full max-w-md relative">
+                <button 
+                  onClick={() => setShowAuth(false)}
+                  className="absolute -top-12 left-1/2 -translate-x-1/2 text-sm font-bold text-slate-400 hover:text-slate-600 transition-colors"
+                >
+                  ← Tutup Login
+                </button>
+                <Auth onAuthSuccess={handleAuthSuccess} />
+              </div>
+            </motion.div>
+          ) : isClosed ? (
+            <motion.div
+              key="maintenance"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+            >
+              <Maintenance onAdminLogin={() => setShowAuth(true)} />
             </motion.div>
           ) : (
             <motion.div
@@ -74,7 +112,13 @@ export default function App() {
               exit={{ opacity: 0, scale: 0.98 }}
               transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
             >
-              <Dashboard user={user} onLogout={handleLogout} onRefresh={checkStatus} />
+              <Dashboard 
+                user={user} 
+                onLogout={handleLogout} 
+                onRefresh={handleRefresh} 
+                onLoginRequest={() => setShowAuth(true)}
+                siteStatus={siteStatus}
+              />
             </motion.div>
           )}
         </AnimatePresence>
