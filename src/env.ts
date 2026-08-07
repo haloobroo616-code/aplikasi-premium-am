@@ -37,3 +37,8 @@ process.env.GOOGLE_CLOUD_PROJECT = firebaseConfig.projectId;
 process.env.FIRESTORE_DATABASE_ID = firebaseConfig.firestoreDatabaseId;
 
 export { firebaseConfig };
+
+export const amConfig = {
+  apiUrl: process.env.AM_API_URL || "https://restapidhan.vercel.app",
+  apiKey: process.env.AM_API_KEY || "freeapikeydhan26",
+};

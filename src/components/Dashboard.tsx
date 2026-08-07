@@ -73,12 +73,15 @@ export default function Dashboard({ user, onLogout, onRefresh, onLoginRequest, s
       const res = await fetch("/api/am/verif", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, url: magicUrl }),
+        body: JSON.stringify({ url: magicUrl }),
       });
       const data = await res.json();
 
       if (res.ok) {
-        setMessage({ type: "success", text: "Upgrade successful! Enjoy Premium." });
+        setMessage({ 
+          type: "success", 
+          text: `Berhasil diaktifkan! Code Order: ${data.codeorder || '-'}` 
+        });
         setStep(1);
         setEmail("");
         setMagicUrl("");
@@ -154,26 +157,32 @@ export default function Dashboard({ user, onLogout, onRefresh, onLoginRequest, s
           className="lg:col-span-4 space-y-6"
         >
           {isAdmin && (
-            <div className="bg-slate-900 p-8 rounded-[32px] text-white shadow-xl relative overflow-hidden group">
+            <div className={`p-8 rounded-[32px] text-white shadow-xl relative overflow-hidden group transition-colors duration-500 ${
+              siteStatus === 'open' ? 'bg-slate-900' : 'bg-rose-950'
+            }`}>
               <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity">
                 <Shield className="w-24 h-24 rotate-12" />
               </div>
-              <h3 className="text-lg font-bold mb-4 relative z-10 flex items-center gap-2">
-                <Shield className="w-5 h-5 text-indigo-400" />
-                Admin Controls
+              <h3 className="text-lg font-bold mb-4 relative z-10 flex items-center gap-2 text-indigo-400">
+                <Shield className="w-5 h-5" />
+                Admin Dashboard Control
               </h3>
-              <p className="text-slate-400 text-sm mb-6 relative z-10">Control the website visibility for public users.</p>
+              <p className="text-slate-400 text-sm mb-6 relative z-10 font-medium">
+                {siteStatus === 'open' 
+                  ? "Status: Public. Website dapat diakses oleh semua pengguna." 
+                  : "Status: Private. Website ditutup untuk publik. Hanya Admin yang bisa melihat Dashboard."}
+              </p>
               <button 
                 onClick={toggleSite}
                 disabled={loading}
-                className={`w-full py-4 rounded-2xl font-black text-sm uppercase tracking-widest transition-all active:scale-95 relative z-10 ${
+                className={`w-full py-4 rounded-2xl font-black text-sm uppercase tracking-widest transition-all active:scale-95 relative z-10 shadow-lg ${
                   siteStatus === 'open' 
-                    ? 'bg-rose-500 hover:bg-rose-600 text-white' 
-                    : 'bg-emerald-500 hover:bg-emerald-600 text-white'
+                    ? 'bg-rose-500 hover:bg-rose-600 text-white shadow-rose-500/20' 
+                    : 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-emerald-500/20'
                 }`}
               >
                 {loading ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : (
-                  siteStatus === 'open' ? 'Close Website' : 'Open Website'
+                  siteStatus === 'open' ? 'Tutup Website (Close)' : 'Buka Website (Open)'
                 )}
               </button>
             </div>
@@ -265,9 +274,9 @@ export default function Dashboard({ user, onLogout, onRefresh, onLoginRequest, s
               <div>
                 <h3 className="text-2xl font-bold text-slate-900 mb-1 flex items-center gap-3">
                   <Zap className="w-7 h-7 text-indigo-600 fill-indigo-600/10" />
-                  Premium Upgrade
+                  Premium AM Upgrade
                 </h3>
-                <p className="text-slate-500 font-medium">Activate your Alight Motion premium subscription</p>
+                <p className="text-slate-500 font-medium">Layanan aktivasi Alight Motion Premium cepat & mudah</p>
               </div>
               <div className="flex items-center gap-1.5">
                 {[1, 2].map((s) => (
@@ -315,7 +324,7 @@ export default function Dashboard({ user, onLogout, onRefresh, onLoginRequest, s
                     
                     <div className="p-5 bg-indigo-50/50 rounded-2xl border border-indigo-100/50">
                       <p className="text-[13px] text-indigo-700 leading-relaxed font-semibold">
-                        Enter the email address connected to your Alight Motion account. We will send a secure activation link to this inbox.
+                        Masukkan email yang terdaftar di Alight Motion. Magic link akan dikirim ke inbox email tersebut.
                       </p>
                     </div>
 
@@ -355,7 +364,7 @@ export default function Dashboard({ user, onLogout, onRefresh, onLoginRequest, s
                         <span className="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md">VERIFICATION</span>
                       </div>
                       <p className="text-xs font-bold text-slate-500 mb-2 pl-1">
-                        Check <span className="text-indigo-600">{email}</span> and copy the button link.
+                        Cek email <span className="text-indigo-600">{email}</span> lalu copy link dari tombol aktivasi.
                       </p>
                       <div className="relative group">
                         <div className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors">
